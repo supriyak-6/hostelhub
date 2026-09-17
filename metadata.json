@@ -1,0 +1,6 @@
+{
+  "name": "HostelHub",
+  "description": "Smart Hostel & Student Residence Management - Centralized platform for students, wardens, security, and maintenance teams.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

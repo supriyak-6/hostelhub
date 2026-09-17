@@ -1,0 +1,110 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserRole() {
+      return request.auth.token.role;
+    }
+    
+    function isStudent() {
+      return isAuthenticated() && (getUserRole() == 'STUDENT' || request.auth.token.email.matches('.*student.*'));
+    }
+    
+    function isWarden() {
+      return isAuthenticated() && (getUserRole() == 'WARDEN' || request.auth.token.email.matches('.*warden.*'));
+    }
+    
+    function isSecurity() {
+      return isAuthenticated() && (getUserRole() == 'SECURITY' || request.auth.token.email.matches('.*security.*'));
+    }
+    
+    function isMaintenance() {
+      return isAuthenticated() && (getUserRole() == 'MAINTENANCE' || request.auth.token.email.matches('.*maintenance.*'));
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && (getUserRole() == 'ADMIN' || request.auth.token.email.matches('.*admin.*'));
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || (isAuthenticated() && request.auth.uid == userId);
+    }
+
+    match /students/{studentId} {
+      allow read: if isAuthenticated();
+      allow write: if isWarden() || isAdmin();
+    }
+    
+    match /staff/{staffId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /rooms/{roomId} {
+      allow read: if isAuthenticated();
+      allow write: if isWarden() || isAdmin();
+    }
+    
+    match /complaints/{complaintId} {
+      allow read: if isAuthenticated();
+      allow create: if isStudent() || isWarden() || isAdmin();
+      allow update: if isWarden() || isMaintenance() || (isStudent() && resource.data.studentId == request.auth.uid) || isAdmin();
+      allow delete: if isAdmin() || isWarden();
+    }
+    
+    match /maintenanceRequests/{taskId} {
+      allow read: if isAuthenticated();
+      allow create, delete: if isWarden() || isAdmin();
+      allow update: if isMaintenance() || isWarden() || isAdmin();
+    }
+    
+    match /visitors/{visitorId} {
+      allow read: if isAuthenticated();
+      allow create: if isStudent() || isWarden() || isAdmin();
+      allow update: if isWarden() || isSecurity() || isAdmin();
+    }
+    
+    match /outpasses/{outpassId} {
+      allow read: if isAuthenticated();
+      allow create: if isStudent() || isWarden() || isAdmin();
+      allow update: if isWarden() || isSecurity() || isAdmin();
+    }
+    
+    match /emergencyAlerts/{alertId} {
+      allow read: if isAuthenticated();
+      allow create: if true;
+      allow update: if isWarden() || isSecurity() || isAdmin();
+    }
+    
+    match /roomTransferRequests/{requestId} {
+      allow read: if isAuthenticated();
+      allow create: if isStudent();
+      allow update: if isWarden() || isAdmin();
+    }
+
+    match /attendance/{recordId} {
+      allow read: if isAuthenticated();
+      allow write: if isWarden() || isAdmin();
+    }
+
+    match /notifications/{notifId} {
+      allow read, update: if isAuthenticated();
+      allow create: if isAuthenticated();
+    }
+
+    match /announcements/{annId} {
+      allow read: if isAuthenticated();
+      allow write: if isWarden() || isAdmin();
+    }
+    
+    match /auditLogs/{logId} {
+      allow read: if isWarden() || isAdmin();
+      allow create: if isAuthenticated();
+    }
+  }
+}
